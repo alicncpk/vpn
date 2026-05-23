@@ -1,0 +1,19 @@
+{
+  "name": "ali-cnc-vpn-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "npm install",
+    "cf-worker:build": "npm run build --workspace=apps/cf-worker",
+    "cf-worker:dev": "npm run dev --workspace=apps/cf-worker",
+    "app:android": "npm run android --workspace=packages/app",
+    "app:ios": "npm run ios --workspace=packages/app",
+    "app:start": "npm run start --workspace=packages/app",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}

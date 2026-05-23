@@ -1,0 +1,83 @@
+apply plugin: "com.android.application"
+apply plugin: "kotlin-android"
+apply plugin: "com.facebook.react"
+
+/**
+ * The react.gradle file has been merged into the com.facebook.react plugin.
+ * We define custom configuration blocks under the react { } block.
+ */
+react {
+    /* Folders */
+    // The root of your project, i.e. where "package.json" lives
+    root = file("../../")
+    // The folder where the react-native package is installed
+    reactNativeDir = file("../../node_modules/react-native")
+    // The folder where the react-native codegen package is installed
+    codegenDir = file("../../node_modules/@react-native/codegen")
+    // The entry file for bundle generation
+    entryFile = file("../App.tsx")
+}
+
+def enableProguardInReleaseBuilds = true
+def jscDist = file("../../node_modules/jsc-android/dist")
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+
+    compileSdk rootProject.ext.compileSdkVersion
+
+    namespace "com.alicncvpn"
+    defaultConfig {
+        applicationId "com.alicncvpn"
+        minSdk rootProject.ext.minSdkVersion
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            if (project.hasProperty('MYAPP_RELEASE_STORE_FILE')) {
+                storeFile file(MYAPP_RELEASE_STORE_FILE)
+                storePassword MYAPP_RELEASE_STORE_PASSWORD
+                keyAlias MYAPP_RELEASE_KEY_ALIAS
+                keyPassword MYAPP_RELEASE_KEY_PASSWORD
+            } else {
+                // Fallback debug-signed parameters for CI parameters injection
+                storeFile file('release.keystore')
+                storePassword 'alicncvpn123'
+                keyAlias 'my-key-alias'
+                keyPassword 'alicncvpn123'
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            // Caution! In production, you need to generate your own keystore.
+            signingConfig signingConfigs.release
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    // The version of react-native is set by the React Native Gradle Plugin
+    implementation("com.facebook.react:react-android")
+
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscDist
+    }
+}

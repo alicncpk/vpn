@@ -1,0 +1,62 @@
+[
+  {
+    "id": "node-us",
+    "name": "United States (Anycast)",
+    "countryCode": "US",
+    "flag": "🇺🇸",
+    "address": "cf-anycast.alicncvpn.workers.dev",
+    "port": 443,
+    "uuid": "d34db33f-c0de-4444-a111-c0ffeec0ffee",
+    "host": "ali-cnc-vpn-worker.alicnc.workers.dev",
+    "path": "/?ed=2048",
+    "baseLatencyMs": 75
+  },
+  {
+    "id": "node-de",
+    "name": "Germany (Frankfurt Edge)",
+    "countryCode": "DE",
+    "flag": "🇩🇪",
+    "address": "cf-anycast.alicncvpn.workers.dev",
+    "port": 443,
+    "uuid": "d34db33f-c0de-4444-a111-c0ffeec0ffee",
+    "host": "ali-cnc-vpn-worker.alicnc.workers.dev",
+    "path": "/?ed=2048",
+    "baseLatencyMs": 42
+  },
+  {
+    "id": "node-jp",
+    "name": "Japan (Tokyo Edge)",
+    "countryCode": "JP",
+    "flag": "🇯🇵",
+    "address": "cf-anycast.alicncvpn.workers.dev",
+    "port": 443,
+    "uuid": "d34db33f-c0de-4444-a111-c0ffeec0ffee",
+    "host": "ali-cnc-vpn-worker.alicnc.workers.dev",
+    "path": "/?ed=2048",
+    "baseLatencyMs": 110
+  },
+  {
+    "id": "node-sg",
+    "name": "Singapore (Anycast Gateway)",
+    "countryCode": "SG",
+    "flag": "🇸🇬",
+    "address": "cf-anycast.alicncvpn.workers.dev",
+    "port": 443,
+    "uuid": "d34db33f-c0de-4444-a111-c0ffeec0ffee",
+    "host": "ali-cnc-vpn-worker.alicnc.workers.dev",
+    "path": "/?ed=2048",
+    "baseLatencyMs": 85
+  },
+  {
+    "id": "node-gb",
+    "name": "United Kingdom (London Edge)",
+    "countryCode": "GB",
+    "flag": "🇬🇧",
+    "address": "cf-anycast.alicncvpn.workers.dev",
+    "port": 443,
+    "uuid": "d34db33f-c0de-4444-a111-c0ffeec0ffee",
+    "host": "ali-cnc-vpn-worker.alicnc.workers.dev",
+    "path": "/?ed=2048",
+    "baseLatencyMs": 55
+  }
+]

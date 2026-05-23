@@ -1,0 +1,8 @@
+name = "ali-cnc-vpn-worker"
+main = "src/index.ts"
+compatibility_date = "2024-05-12"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+# Default UUID for VLESS authentication. User can override via Cloudflare dashboard variables.
+UUID = "d34db33f-c0de-4444-a111-c0ffeec0ffee"
