@@ -14,11 +14,9 @@ import {
 // Components
 import { ConnectButton, VpnState } from './src/components/ConnectButton';
 import { CountryPicker, VpnServer } from './src/components/CountryPicker';
-import { BannerAdView } from './src/components/BannerAdView';
 
 // Config & Hooks
 import exitNodes from './src/config/exitNodes.json';
-import { useVpnAdGate } from './src/hooks/useVpnAdGate';
 import { useCloudflare, CloudflareAccount } from './src/hooks/useCloudflare';
 import { SingBoxConfigService } from './src/services/singbox';
 
@@ -45,7 +43,6 @@ export default function App() {
   const [deployScriptName, setDeployScriptName] = useState('ali-cnc-private-node');
 
   // Hooks
-  const { showAdAndExecute, isAdLoaded, isAdLoading, adError } = useVpnAdGate();
   const cfDeployer = useCloudflare();
 
   const statsInterval = useRef<NodeJS.Timeout | null>(null);
@@ -120,7 +117,7 @@ export default function App() {
     }, 2500);
   }, [selectedServer, startStatsSimulation]);
 
-  // Primary Connect Press handler with Ad gating
+  // Primary Connect Press handler
   const handleConnectPress = () => {
     if (vpnState === 'connected' || vpnState === 'connecting') {
       // Disconnecting
@@ -128,12 +125,7 @@ export default function App() {
       stopStatsSimulation();
       addLog('SHIELD: VPN Tunnel closed. Direct connection restored.');
     } else {
-      // Request Ad Gate
-      addLog('AD-GATE: Loading rewarded ad to authorize VPN session...');
-      showAdAndExecute(() => {
-        addLog('AD-GATE: Reward authorization granted. Launching VPN tunnel...');
-        startVpnConnection();
-      });
+      startVpnConnection();
     }
   };
 
@@ -378,8 +370,6 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* Admob bottom banner */}
-      <BannerAdView />
     </SafeAreaView>
   );
 }
