@@ -15,5 +15,10 @@
     "app:start": "npm run start --workspace=packages/app",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.74.1",
+    "react-native-vector-icons": "^10.1.0"
   }
 }
