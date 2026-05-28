@@ -1,6 +1,15 @@
+pluginManagement {
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+
+plugins {
+    id("com.facebook.react.settings")
+}
+
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesWithApp()
+}
+
 rootProject.name = "AliCncVpn"
 include ':app'
-
-// Auto-link React Native modules
-apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
-applyNativeModulesSettingsGradle(settings)
+includeBuild('../node_modules/@react-native/gradle-plugin')
