@@ -9,6 +9,7 @@ import {
   TextInput,
   StatusBar,
   ActivityIndicator,
+  AppRegistry,
 } from 'react-native';
 
 // Components
@@ -689,3 +690,5 @@ const styles = StyleSheet.create({
     fontFamily: 'monospace',
   },
 });
+
+AppRegistry.registerComponent('AliCncVpn', () => App);

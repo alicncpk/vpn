@@ -24,3 +24,5 @@ allprojects {
         mavenCentral()
     }
 }
+
+apply plugin: "com.facebook.react.rootproject"

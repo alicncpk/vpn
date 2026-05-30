@@ -15,7 +15,7 @@ react {
     // The folder where the react-native codegen package is installed
     codegenDir = file("../../node_modules/@react-native/codegen")
     // The entry file for bundle generation
-    entryFile = file("../App.tsx")
+    entryFile = file("../../packages/app/App.tsx")
 }
 
 def enableProguardInReleaseBuilds = true
@@ -81,3 +81,5 @@ dependencies {
         implementation jscDist
     }
 }
+
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
