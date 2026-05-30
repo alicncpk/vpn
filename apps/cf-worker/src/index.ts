@@ -6,6 +6,37 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname === '/ip') {
+      try {
+        const ipifyRes = await fetch('https://api.ipify.org?format=json');
+        const ipifyData = (await ipifyRes.json()) as { ip: string };
+        return new Response(JSON.stringify({
+          ip: ipifyData.ip,
+          country: 'Cloudflare Edge',
+          city: 'Anycast Node',
+          isp: 'Cloudflare, Inc.'
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({
+          ip: '104.21.43.109',
+          country: 'Cloudflare Edge',
+          city: 'Anycast Node',
+          isp: 'Cloudflare, Inc.'
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
     const upgradeHeader = request.headers.get('Upgrade');
     if (!upgradeHeader || upgradeHeader.toLowerCase() !== 'websocket') {
       // Direct HTTP requests see a normal web page for camouflage

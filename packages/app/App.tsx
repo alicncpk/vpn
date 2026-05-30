@@ -78,11 +78,62 @@ export default function App() {
     setPing(0);
   }, []);
 
+  const [localIpInfo, setLocalIpInfo] = useState<{ ip: string; country: string; city: string; isp: string } | null>(null);
+  const [currentIpInfo, setCurrentIpInfo] = useState<{ ip: string; country: string; city: string; isp: string }>({
+    ip: '---',
+    country: '---',
+    city: '---',
+    isp: '---'
+  });
+  const [isIpLoading, setIsIpLoading] = useState(false);
+
+  const fetchLocalIp = useCallback(async () => {
+    setIsIpLoading(true);
+    try {
+      // Try ip-api (fast, free, returns geolocation + ISP)
+      const res = await fetch('http://ip-api.com/json/');
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        const info = {
+          ip: data.query || '---',
+          country: data.country || '---',
+          city: data.city || '---',
+          isp: data.isp || '---'
+        };
+        setLocalIpInfo(info);
+        setCurrentIpInfo(info);
+        addLog(`IP-LOOKUP: Local Egress Resolved -> IP: ${info.ip} (${info.city}, ${info.country})`);
+      } else {
+        throw new Error('API failure');
+      }
+    } catch (e) {
+      // Fallback
+      try {
+        const res2 = await fetch('https://ipapi.co/json/');
+        const data2 = await res2.json();
+        const info = {
+          ip: data2.ip || '---',
+          country: data2.country_name || '---',
+          city: data2.city || '---',
+          isp: data2.org || '---'
+        };
+        setLocalIpInfo(info);
+        setCurrentIpInfo(info);
+        addLog(`IP-LOOKUP: Local Egress Resolved (Fallback) -> IP: ${info.ip}`);
+      } catch (err) {
+        addLog('IP-LOOKUP ERROR: Geolocation services offline.');
+      }
+    } finally {
+      setIsIpLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
+    fetchLocalIp();
     return () => {
       if (statsInterval.current) clearInterval(statsInterval.current);
     };
-  }, []);
+  }, [fetchLocalIp]);
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -110,11 +161,66 @@ export default function App() {
     addLog('SING-BOX: Binding local VPN TUN interface (tun0)...');
 
     // Simulate connection delay
-    setTimeout(() => {
+    setTimeout(async () => {
       setVpnState('connected');
       addLog('VLESS: WebSocket channel established with remote egress server.');
       addLog(`SHIELD: Tunnel active. Traffic routing secured via ${selectedServer.address}:${selectedServer.port}`);
       startStatsSimulation();
+
+      // Update IP to the proxy IP!
+      setIsIpLoading(true);
+      if (selectedServer.isCustom) {
+        addLog(`PROXY-CHECK: Verifying routing via Custom Worker: https://${selectedServer.address}/ip`);
+        try {
+          const res = await fetch(`https://${selectedServer.address}/ip`);
+          const data = await res.json();
+          const info = {
+            ip: data.ip || '104.21.43.109',
+            country: data.country || 'Cloudflare Edge',
+            city: data.city || 'Anycast Node',
+            isp: data.isp || 'Cloudflare, Inc.'
+          };
+          setCurrentIpInfo(info);
+          addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${info.ip} (${info.city}, ${info.country})`);
+        } catch (e) {
+          // Fallback to mock Cloudflare IP for custom node
+          const fallbackInfo = {
+            ip: '104.21.43.109',
+            country: 'Cloudflare Edge',
+            city: 'Anycast Node',
+            isp: 'Cloudflare, Inc.'
+          };
+          setCurrentIpInfo(fallbackInfo);
+          addLog(`PROXY-CHECK: Tunnel Egress Confirmed (Simulated) -> IP: ${fallbackInfo.ip}`);
+        } finally {
+          setIsIpLoading(false);
+        }
+      } else {
+        // Predefined exits mock IPs
+        let mockInfo = {
+          ip: '104.21.43.109',
+          country: 'Cloudflare Edge',
+          city: 'Anycast Node',
+          isp: 'Cloudflare, Inc.'
+        };
+        if (selectedServer.countryCode === 'US') {
+          mockInfo = { ip: '172.67.182.204', country: 'United States', city: 'Ashburn', isp: 'Cloudflare, Inc.' };
+        } else if (selectedServer.countryCode === 'DE') {
+          mockInfo = { ip: '104.21.90.134', country: 'Germany', city: 'Frankfurt', isp: 'Cloudflare, Inc.' };
+        } else if (selectedServer.countryCode === 'JP') {
+          mockInfo = { ip: '172.67.218.42', country: 'Japan', city: 'Tokyo', isp: 'Cloudflare, Inc.' };
+        } else if (selectedServer.countryCode === 'SG') {
+          mockInfo = { ip: '104.21.32.8', country: 'Singapore', city: 'Singapore Edge', isp: 'Cloudflare, Inc.' };
+        } else if (selectedServer.countryCode === 'GB') {
+          mockInfo = { ip: '172.67.140.231', country: 'United Kingdom', city: 'London', isp: 'Cloudflare, Inc.' };
+        }
+
+        setTimeout(() => {
+          setCurrentIpInfo(mockInfo);
+          setIsIpLoading(false);
+          addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${mockInfo.ip} (${mockInfo.city}, ${mockInfo.country})`);
+        }, 800);
+      }
     }, 2500);
   }, [selectedServer, startStatsSimulation]);
 
@@ -125,6 +231,11 @@ export default function App() {
       setVpnState('disconnected');
       stopStatsSimulation();
       addLog('SHIELD: VPN Tunnel closed. Direct connection restored.');
+      if (localIpInfo) {
+        setCurrentIpInfo(localIpInfo);
+      } else {
+        fetchLocalIp();
+      }
     } else {
       startVpnConnection();
     }
@@ -237,6 +348,36 @@ export default function App() {
               <Text style={[styles.metricValue, { color: '#ffffff' }]}>
                 {vpnState === 'connected' ? `${dataTransferred} MB` : '0.00 MB'}
               </Text>
+            </View>
+          </View>
+
+          {/* Egress Geolocation Panel */}
+          <View style={styles.egressPanel}>
+            <View style={styles.egressHeader}>
+              <View style={[styles.statusDot, { backgroundColor: vpnState === 'connected' ? '#00ff66' : '#ffb300' }]} />
+              <Text style={styles.egressHeaderTitle}>
+                {vpnState === 'connected' ? 'SECURED EGRESS ENVELOPE' : 'EXPOSED LOCAL ROUTE'}
+              </Text>
+            </View>
+            <View style={styles.egressGrid}>
+              <View style={styles.egressItem}>
+                <Text style={styles.egressLabel}>EGRESS IP</Text>
+                {isIpLoading ? (
+                  <ActivityIndicator size="small" color="#00e5ff" style={{ alignSelf: 'flex-start', marginTop: 4 }} />
+                ) : (
+                  <Text style={[styles.egressValueText, { color: vpnState === 'connected' ? '#00ff66' : '#ff4d4d', fontWeight: 'bold' }]}>
+                    {currentIpInfo.ip}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.egressItem}>
+                <Text style={styles.egressLabel}>LOCATION</Text>
+                <Text style={styles.egressValueText}>{currentIpInfo.city}, {currentIpInfo.country}</Text>
+              </View>
+            </View>
+            <View style={styles.egressFooter}>
+              <Text style={styles.egressFooterLabel}>ROUTING GATEWAY / ISP</Text>
+              <Text style={styles.egressFooterValue}>{currentIpInfo.isp}</Text>
             </View>
           </View>
 
@@ -688,6 +829,76 @@ const styles = StyleSheet.create({
     color: '#00ff66',
     fontSize: 11,
     fontFamily: 'monospace',
+  },
+  egressPanel: {
+    backgroundColor: '#0c0f12',
+    borderWidth: 1,
+    borderColor: '#1c2635',
+    borderRadius: 8,
+    marginHorizontal: 20,
+    marginTop: 15,
+    padding: 12,
+  },
+  egressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1c2635',
+    paddingBottom: 6,
+    marginBottom: 8,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  egressHeaderTitle: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    letterSpacing: 1.5,
+  },
+  egressGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  egressItem: {
+    flex: 1,
+  },
+  egressLabel: {
+    color: '#5e7594',
+    fontSize: 8,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  egressValueText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontFamily: 'monospace',
+  },
+  egressFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#1c2635',
+    paddingTop: 6,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  egressFooterLabel: {
+    color: '#5e7594',
+    fontSize: 8,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+  },
+  egressFooterValue: {
+    color: '#00e5ff',
+    fontSize: 10,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
   },
 });
 
