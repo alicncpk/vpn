@@ -10,6 +10,7 @@ import {
   StatusBar,
   ActivityIndicator,
   AppRegistry,
+  NativeModules,
 } from 'react-native';
 
 // Components
@@ -20,6 +21,8 @@ import { CountryPicker, VpnServer } from './src/components/CountryPicker';
 import exitNodes from './src/config/exitNodes.json';
 import { useCloudflare, CloudflareAccount } from './src/hooks/useCloudflare';
 import { SingBoxConfigService } from './src/services/singbox';
+
+const { AliCncVpnModule } = NativeModules;
 
 export default function App() {
   const [vpnState, setVpnState] = useState<VpnState>('disconnected');
@@ -160,74 +163,107 @@ export default function App() {
     addLog('SING-BOX: Initializing core routing stack...');
     addLog('SING-BOX: Binding local VPN TUN interface (tun0)...');
 
-    // Simulate connection delay
-    setTimeout(async () => {
-      setVpnState('connected');
-      addLog('VLESS: WebSocket channel established with remote egress server.');
-      addLog(`SHIELD: Tunnel active. Traffic routing secured via ${selectedServer.address}:${selectedServer.port}`);
-      startStatsSimulation();
+    if (AliCncVpnModule) {
+      addLog('ANDROID-OS: Requesting system permission for VPN profile installation...');
+      AliCncVpnModule.startVpn()
+        .then(() => {
+          addLog('ANDROID-OS: System VPN Profile successfully established.');
+          // Simulate connection delay
+          setTimeout(async () => {
+            setVpnState('connected');
+            addLog('VLESS: WebSocket channel established with remote egress server.');
+            addLog(`SHIELD: Tunnel active. Traffic routing secured via ${selectedServer.address}:${selectedServer.port}`);
+            startStatsSimulation();
 
-      // Update IP to the proxy IP!
-      setIsIpLoading(true);
-      if (selectedServer.isCustom) {
-        addLog(`PROXY-CHECK: Verifying routing via Custom Worker: https://${selectedServer.address}/ip`);
-        try {
-          const res = await fetch(`https://${selectedServer.address}/ip`);
-          const data = await res.json();
-          const info = {
-            ip: data.ip || '104.21.43.109',
-            country: data.country || 'Cloudflare Edge',
-            city: data.city || 'Anycast Node',
-            isp: data.isp || 'Cloudflare, Inc.'
-          };
-          setCurrentIpInfo(info);
-          addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${info.ip} (${info.city}, ${info.country})`);
-        } catch (e) {
-          // Fallback to mock Cloudflare IP for custom node
-          const fallbackInfo = {
-            ip: '104.21.43.109',
-            country: 'Cloudflare Edge',
-            city: 'Anycast Node',
-            isp: 'Cloudflare, Inc.'
-          };
-          setCurrentIpInfo(fallbackInfo);
-          addLog(`PROXY-CHECK: Tunnel Egress Confirmed (Simulated) -> IP: ${fallbackInfo.ip}`);
-        } finally {
-          setIsIpLoading(false);
-        }
-      } else {
-        // Predefined exits mock IPs
+            // Update IP to the proxy IP!
+            setIsIpLoading(true);
+            if (selectedServer.isCustom) {
+              addLog(`PROXY-CHECK: Verifying routing via Custom Worker: https://${selectedServer.address}/ip`);
+              try {
+                const res = await fetch(`https://${selectedServer.address}/ip`);
+                const data = await res.json();
+                const info = {
+                  ip: data.ip || '104.21.43.109',
+                  country: data.country || 'Cloudflare Edge',
+                  city: data.city || 'Anycast Node',
+                  isp: data.isp || 'Cloudflare, Inc.'
+                };
+                setCurrentIpInfo(info);
+                addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${info.ip} (${info.city}, ${info.country})`);
+              } catch (e) {
+                // Fallback to mock Cloudflare IP for custom node
+                const fallbackInfo = {
+                  ip: '104.21.43.109',
+                  country: 'Cloudflare Edge',
+                  city: 'Anycast Node',
+                  isp: 'Cloudflare, Inc.'
+                };
+                setCurrentIpInfo(fallbackInfo);
+                addLog(`PROXY-CHECK: Tunnel Egress Confirmed (Simulated) -> IP: ${fallbackInfo.ip}`);
+              } finally {
+                setIsIpLoading(false);
+              }
+            } else {
+              // Predefined exits mock IPs
+              let mockInfo = {
+                ip: '104.21.43.109',
+                country: 'Cloudflare Edge',
+                city: 'Anycast Node',
+                isp: 'Cloudflare, Inc.'
+              };
+              if (selectedServer.countryCode === 'US') {
+                mockInfo = { ip: '172.67.182.204', country: 'United States', city: 'Ashburn', isp: 'Cloudflare, Inc.' };
+              } else if (selectedServer.countryCode === 'DE') {
+                mockInfo = { ip: '104.21.90.134', country: 'Germany', city: 'Frankfurt', isp: 'Cloudflare, Inc.' };
+              } else if (selectedServer.countryCode === 'JP') {
+                mockInfo = { ip: '172.67.218.42', country: 'Japan', city: 'Tokyo', isp: 'Cloudflare, Inc.' };
+              } else if (selectedServer.countryCode === 'SG') {
+                mockInfo = { ip: '104.21.32.8', country: 'Singapore', city: 'Singapore Edge', isp: 'Cloudflare, Inc.' };
+              } else if (selectedServer.countryCode === 'GB') {
+                mockInfo = { ip: '172.67.140.231', country: 'United Kingdom', city: 'London', isp: 'Cloudflare, Inc.' };
+              }
+
+              setTimeout(() => {
+                setCurrentIpInfo(mockInfo);
+                setIsIpLoading(false);
+                addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${mockInfo.ip} (${mockInfo.city}, ${mockInfo.country})`);
+              }, 800);
+            }
+          }, 1500);
+        })
+        .catch((err: any) => {
+          setVpnState('disconnected');
+          addLog(`ANDROID-OS ERROR: VPN Service initiation rejected: ${err.message || err}`);
+        });
+    } else {
+      // Simulate connection delay fallback
+      setTimeout(async () => {
+        setVpnState('connected');
+        addLog('VLESS: WebSocket channel established with remote egress server.');
+        addLog(`SHIELD: Tunnel active. Traffic routing secured via ${selectedServer.address}:${selectedServer.port}`);
+        startStatsSimulation();
+
+        // Update IP to the proxy IP!
+        setIsIpLoading(true);
         let mockInfo = {
           ip: '104.21.43.109',
           country: 'Cloudflare Edge',
           city: 'Anycast Node',
           isp: 'Cloudflare, Inc.'
         };
-        if (selectedServer.countryCode === 'US') {
-          mockInfo = { ip: '172.67.182.204', country: 'United States', city: 'Ashburn', isp: 'Cloudflare, Inc.' };
-        } else if (selectedServer.countryCode === 'DE') {
-          mockInfo = { ip: '104.21.90.134', country: 'Germany', city: 'Frankfurt', isp: 'Cloudflare, Inc.' };
-        } else if (selectedServer.countryCode === 'JP') {
-          mockInfo = { ip: '172.67.218.42', country: 'Japan', city: 'Tokyo', isp: 'Cloudflare, Inc.' };
-        } else if (selectedServer.countryCode === 'SG') {
-          mockInfo = { ip: '104.21.32.8', country: 'Singapore', city: 'Singapore Edge', isp: 'Cloudflare, Inc.' };
-        } else if (selectedServer.countryCode === 'GB') {
-          mockInfo = { ip: '172.67.140.231', country: 'United Kingdom', city: 'London', isp: 'Cloudflare, Inc.' };
-        }
-
-        setTimeout(() => {
-          setCurrentIpInfo(mockInfo);
-          setIsIpLoading(false);
-          addLog(`PROXY-CHECK: Tunnel Egress Confirmed -> IP: ${mockInfo.ip} (${mockInfo.city}, ${mockInfo.country})`);
-        }, 800);
-      }
-    }, 2500);
-  }, [selectedServer, startStatsSimulation]);
+        setCurrentIpInfo(mockInfo);
+        setIsIpLoading(false);
+      }, 2500);
+    }
+  }, [selectedServer, startStatsSimulation, fetchLocalIp, localIpInfo]);
 
   // Primary Connect Press handler
   const handleConnectPress = () => {
     if (vpnState === 'connected' || vpnState === 'connecting') {
       // Disconnecting
+      if (AliCncVpnModule) {
+        AliCncVpnModule.stopVpn().catch(() => {});
+      }
       setVpnState('disconnected');
       stopStatsSimulation();
       addLog('SHIELD: VPN Tunnel closed. Direct connection restored.');
