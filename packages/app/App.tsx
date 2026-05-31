@@ -329,6 +329,24 @@ export default function App() {
     cfDeployer.authenticateWithToken(cfToken.trim());
   };
 
+  const handleSaveLogs = async () => {
+    if (!logs || logs.length === 0) {
+      alert('No logs available to save');
+      return;
+    }
+    const logsText = logs.join('\n');
+    if (AliCncVpnModule && AliCncVpnModule.saveLogsToStorage) {
+      try {
+        const result = await AliCncVpnModule.saveLogsToStorage(logsText);
+        alert(result);
+      } catch (err: any) {
+        alert(`Failed to save logs: ${err.message || err}`);
+      }
+    } else {
+      alert('Log exporter module not initialized on this platform.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.appContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#05070a" />
@@ -430,7 +448,12 @@ export default function App() {
 
           {/* Live Router Console Output */}
           <View style={styles.logsConsole}>
-            <Text style={styles.consoleHeader}>CORE ROUTER STACK LOGS</Text>
+            <View style={styles.consoleHeaderContainer}>
+              <Text style={styles.consoleHeader}>CORE ROUTER STACK LOGS</Text>
+              <TouchableOpacity style={styles.saveLogsBtn} onPress={handleSaveLogs}>
+                <Text style={styles.saveLogsBtnText}>SAVE LOGS</Text>
+              </TouchableOpacity>
+            </View>
             <ScrollView style={styles.consoleScroll} nestedScrollEnabled={true}>
               {logs.map((log, index) => (
                 <Text key={index} style={styles.consoleLogText}>{log}</Text>
@@ -935,6 +958,28 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'monospace',
     fontWeight: 'bold',
+  },
+  consoleHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1c2635',
+    paddingBottom: 4,
+    marginBottom: 8,
+  },
+  saveLogsBtn: {
+    backgroundColor: '#ff9d00',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  saveLogsBtnText: {
+    color: '#0f1318',
+    fontSize: 8,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    letterSpacing: 1,
   },
 });
 

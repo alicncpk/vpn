@@ -3,6 +3,9 @@ package com.alicncvpn
 import android.app.Activity
 import android.content.Intent
 import android.net.VpnService
+import android.content.ContentValues
+import android.provider.MediaStore
+import android.os.Environment
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.BaseActivityEventListener
 import com.facebook.react.bridge.ReactApplicationContext
@@ -60,6 +63,36 @@ class AliCncVpnModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
         intent.action = "STOP"
         reactApplicationContext.startService(intent)
         promise.resolve("DISCONNECTED")
+    }
+
+    @ReactMethod
+    fun saveLogsToStorage(logsText: String, promise: Promise) {
+        val context = reactApplicationContext
+        val resolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "AliCncVpn_Logs_${System.currentTimeMillis()}.txt")
+            put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        }
+
+        var outputStream: java.io.OutputStream? = null
+        try {
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                outputStream = resolver.openOutputStream(uri)
+                outputStream?.write(logsText.toByteArray())
+                outputStream?.flush()
+                promise.resolve("Logs successfully saved to Downloads folder!")
+            } else {
+                promise.reject("SAVE_FAILED", "Failed to create MediaStore entry")
+            }
+        } catch (e: Exception) {
+            promise.reject("SAVE_FAILED", e.message, e)
+        } finally {
+            try {
+                outputStream?.close()
+            } catch (e: Exception) {}
+        }
     }
 
     private fun startVpnService() {

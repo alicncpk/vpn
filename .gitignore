@@ -7,7 +7,6 @@ web_modules/
 build/
 dist/
 android/app/build/
-android/app/release.keystore
 *.apk
 *.aar
 
